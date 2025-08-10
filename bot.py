@@ -50,16 +50,29 @@ def wilder_atr(tr, period=14):
     return atr
 
 def compute_vwap_session_TR(df):
-    """NY 17:00 リセットの擬似VWAP（重み=TR）"""
+    """
+    NY 17:00 リセットの擬似VWAP（重み=TR）。
+    pandasのgroupbyキーを1次元Series（文字列）にして、
+    cumsumの戻り値が確実にSeriesになるようにする。
+    """
+    # NYタイムゾーンで17:00始まりのセッションIDを作成（1次元Seriesに落とす）
     idx_ny = df.index.tz_convert(NY)
-    session_key = (idx_ny - pd.Timedelta(hours=17)).floor("1D")  # 17時で日替わり
-    vol_proxy = df["TR"].clip(lower=1e-9)  # TRを重み
+    session_id = (idx_ny - pd.Timedelta(hours=17)).floor("1D").strftime("%Y-%m-%d")
+
+    # 重みはTR（ゼロ割回避）
+    vol_proxy = df["TR"].clip(lower=1e-9)
+
+    # 典型価格
     tp = (df["High"] + df["Low"] + df["Close"]) / 3.0
-    df["_pv"] = (tp * vol_proxy).groupby(session_key).cumsum()
-    df["_v"]  = (vol_proxy).groupby(session_key).cumsum()
-    vwap = df["_pv"] / df["_v"]
-    df.drop(columns=["_pv","_v"], inplace=True)
+
+    # 累積（各セッションごと）
+    pv_cum = (tp * vol_proxy).groupby(session_id).cumsum()
+    v_cum  = (vol_proxy).groupby(session_id).cumsum()
+
+    # VWAP = cum(P*V) / cum(V)
+    vwap = pv_cum / v_cum
     return vwap
+
 
 def read_yaml_or_default(path):
     default = {
