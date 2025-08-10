@@ -1,0 +1,34 @@
+# USDJPY M15 — Strategy B (DD-tuned)
+STRATEGY: B
+DATA:
+  timeframe: M15
+  tz: Asia/Tokyo
+FILTERS:
+  time_windows: ["13:00-23:59","00:00-02:00"]
+  atr_range_jpy: [0.04, 0.12]
+  atr_top_skip_pct: 0.90        # skip top 10% ATR (rolling 30d)
+  vwap_deviation_atr: 2.0       # |Close - VWAP| <= 2×ATR
+  h1_alignment: true            # H1 EMA50 > EMA200 for longs (and inverse for shorts)
+  volume_confirm_ratio: 1.2     # mean vol(3) >= median vol(20) × 1.2
+ENTRY:
+  breakout_donchian_h1_buffer_atr: 0.25
+  trend_filter: [EMA9>EMA20, MACD>0/ <0, RSI>=50/<=50]
+RISK_MANAGEMENT:
+  sl_atr_mult: 1.1
+  tp1_atr_mult: 1.3
+  partial_takeprofit: {"leg1": 0.5, "leg2": 0.5}
+  trail: EMA9_after_BE          # BE after TP1, then EMA9 trail for leg2
+  max_hold_hours: 24
+  daily_loss_cap_R: -3.0
+  consec_loss_stop: 2
+  weekly_loss_cap_R: -6.0
+  shock_bar_filter_TR_over_ATR: 1.8
+EXECUTION:
+  signal_on: bar_close
+  entry_at: next_bar_open
+  order_type: market
+COSTS:
+  spread_source: empirical
+  slippage_pips: 0.2
+POSITION_SIZING:
+  risk_per_R_pct: 0.8           # 0.8% per R (suggested)
